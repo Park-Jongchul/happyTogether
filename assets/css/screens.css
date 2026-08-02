@@ -7,8 +7,10 @@
     radial-gradient(circle at 82% 24%,rgba(249,214,204,.75) 0 20%,transparent 21%),
     radial-gradient(circle at 14% 78%,rgba(255,255,255,.18) 0 24%,transparent 25%),
     linear-gradient(140deg,#0f6f70,#21a3a4 52%,#f0968d)}
-.cover-tag{position:absolute;left:18px;bottom:14px;color:#fff;font-weight:900;font-size:19px;
-  line-height:1.05;letter-spacing:-.6px;text-shadow:0 2px 10px rgba(0,0,0,.25)}
+.cover-tag{position:absolute;left:18px;bottom:32px;color:#fff;font-weight:900;font-size:24px;
+  line-height:1.15;letter-spacing:-1.2px;text-shadow:0 2px 12px rgba(0,0,0,.28)}
+.cover-tag-en{position:absolute;left:19px;bottom:14px;color:rgba(255,255,255,.82);
+  font-size:10.5px;font-weight:800;letter-spacing:.22em}
 .cover-info{display:flex;align-items:center;gap:11px;padding:12px 16px 13px;border-bottom:1px solid var(--line)}
 .cover-logo{width:42px;height:42px;border-radius:14px;flex:0 0 auto;display:grid;place-items:center;
   font-weight:800;font-size:18px;color:#fff;background:linear-gradient(140deg,var(--brand),var(--brand-dark))}

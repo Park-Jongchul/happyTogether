@@ -8,7 +8,8 @@ window.SCREENS = window.SCREENS || {};
     const c = DB.community;
     return '' +
     '<div class="cover">' +
-      '<div class="cover-img"><span class="cover-tag">DOL<br>STORY</span></div>' +
+      '<div class="cover-img"><span class="cover-tag">행복하자<br>우리</span>' +
+        '<span class="cover-tag-en">HAPPY TOGETHER</span></div>' +
       '<div class="cover-info">' +
         '<div class="cover-logo">행</div>' +
         '<div style="flex:1;min-width:0">' +

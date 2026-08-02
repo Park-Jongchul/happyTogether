@@ -3,7 +3,8 @@
 window.DB = (function () {
 
   const community = {
-    name: '두 번째 봄 · 돌싱라운지',
+    name: '행복하자 우리',
+    nameEn: 'Happy Together',
     slogan: '두 번째 시작, 함께라서 더 편안하게',
     desc: '서울·경기 돌싱 친목 커뮤니티',
     members: 12480,
