@@ -1,13 +1,16 @@
-# 행복하자 우리 (Happy Together)
+# 행복하자 우리 (Happy Together) — 웹
 
-돌싱의 일상·친목·모임·대화를 연결하는 커뮤니티 — 모바일 웹앱 + 안드로이드 WebView 앱
+돌싱의 일상·친목·모임·대화를 연결하는 커뮤니티 — 모바일 웹앱
 
 ## 👉 [웹페이지 열기](https://park-jongchul.github.io/happyTogether/)
 
-| 구분 | 주소 |
-|---|---|
-| **웹페이지 (이 저장소)** | https://park-jongchul.github.io/happyTogether/ |
-| 화면설계서 | https://park-jongchul.github.io/happyTogetherDoc/ |
+| 구분 | 저장소 | 주소 |
+|---|---|---|
+| **웹앱 (이 저장소)** | `happyTogether` | https://park-jongchul.github.io/happyTogether/ |
+| 화면설계서 | `happyTogetherDoc` | https://park-jongchul.github.io/happyTogetherDoc/ |
+| 안드로이드 앱 | `happyTogetherApp` | https://github.com/Park-Jongchul/happyTogetherApp |
+
+로컬 경로: `/Users/mac/jongchul/ProjectPjc/happyTogetherWeb`
 
 ---
 
@@ -22,7 +25,6 @@ assets/js/ui.js         공통 UI · 세션 · 권한 게이트
 assets/js/screens-*.js  화면 구현 (D01~D27)
 assets/js/app.js        해시 라우터 · 이벤트 위임
 
-android/                안드로이드 WebView 앱 (APK 빌드용)  → android/README.md
 docs/schema.sql         PostgreSQL / Supabase 스키마 + RLS 권한 정책
 docs/BACKEND.md         백엔드 연동 가이드 · API 계약
 ```
@@ -55,7 +57,9 @@ docs/BACKEND.md         백엔드 연동 가이드 · API 계약
 - **외부 CDN·폰트 의존성 0** → 오프라인 패키징 가능
 - 세션은 `localStorage` 에 저장
 
-APK 빌드는 [`android/README.md`](android/README.md) 참고.
+APK 빌드는 별도 저장소 [`happyTogetherApp`](https://github.com/Park-Jongchul/happyTogetherApp) 에서 합니다.
+그 프로젝트는 빌드할 때 **이 저장소의 `index.html` 과 `assets/` 를 자동으로 복사**해 APK 에 넣습니다.
+(로컬에서 두 폴더가 나란히 있어야 합니다: `happyTogetherWeb` ↔ `happyTogether`)
 
 ## 데모 사용법
 

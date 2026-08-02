@@ -3,16 +3,5 @@ _tv.html
 _probe.html
 _t.html
 
-# Android
-android/.gradle/
-android/build/
-android/app/build/
-android/local.properties
-android/.idea/
-android/app/src/main/assets/web/
-*.iml
-*.keystore
-*.jks
-
 # macOS
 .DS_Store
