@@ -19,6 +19,8 @@
 
 *,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
+/* 웹뷰에서 가로 스크롤이 생기지 않도록 방어 */
+html,body{max-width:100%;overflow-x:hidden}
 body{
   margin:0; background:var(--bg); color:var(--ink);
   font:var(--fs)/1.6 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",system-ui,"Segoe UI",Roboto,sans-serif;
@@ -62,7 +64,7 @@ h1,h2,h3,h4,p{margin:0}
 
 /* ───────── 앱 셸 ───────── */
 .app{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;
-  max-width:520px;margin:0 auto;background:var(--bg);position:relative}
+  width:100%;max-width:520px;margin:0 auto;background:var(--bg);position:relative;overflow-x:hidden}
 @media (min-width:560px){
   body{background:#e9edf2}
   .app{box-shadow:0 0 0 1px var(--line),0 18px 60px rgba(24,32,44,.12);min-height:100dvh}
