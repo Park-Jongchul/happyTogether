@@ -257,7 +257,14 @@
     if (chk) {
       chk.classList.toggle('on');
       const nx = $('#btn-next');
-      if (nx) nx.disabled = !$('[data-check="agree-all"]').classList.contains('on');
+      if (nx) {
+        nx.disabled = !$('[data-check="agree-all"]').classList.contains('on');
+        /* 필수 약관에 동의하면 '다음' 버튼을 바로 보여줍니다 */
+        if (!nx.disabled) {
+          try { nx.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+          catch (err) { nx.scrollIntoView(); }
+        }
+      }
       return;
     }
 
@@ -315,6 +322,37 @@
     }
   });
 
+  /* ── 소프트 키보드 대응 ────────────────
+     키보드가 떠도 창이 줄지 않는 환경(모바일 브라우저 · edge-to-edge 웹뷰)에서는
+     화면 아래쪽 버튼이 키보드에 가려지고 더 내려갈 여백도 없습니다.
+     키보드 높이를 --kb 로 넘겨 그만큼 스크롤 여유를 만듭니다.
+     창이 실제로 줄어드는 환경에서는 값이 0 이 되므로 여백이 중복되지 않습니다. */
+  function trackKeyboard () {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    let cur = 0;
+    const apply = () => {
+      let kb = Math.round(window.innerHeight - vv.height - vv.offsetTop);
+      if (kb < 100) kb = 0;                      // 주소창 높이 변화 등은 무시
+      if (Math.abs(kb - cur) < 8) return;
+      cur = kb;
+      document.documentElement.style.setProperty('--kb', kb + 'px');
+    };
+    vv.addEventListener('resize', apply);
+    vv.addEventListener('scroll', apply);
+    apply();
+  }
+
+  /* 입력칸을 누르면 키보드에 가리지 않도록 화면 가운데로 */
+  document.addEventListener('focusin', function (e) {
+    const el = e.target;
+    if (!el || !el.matches || !el.matches('input, textarea')) return;
+    setTimeout(() => {
+      try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+      catch (err) { el.scrollIntoView(); }
+    }, 320);
+  });
+
   /* ── 부팅 ────────────────────────────── */
   window.addEventListener('hashchange', render);
 
@@ -322,6 +360,7 @@
     if (!location.hash) location.replace('#/home');
     render();
     $('#app').hidden = false;
+    trackKeyboard();
     /* D01: 로딩 완료 후 즉시 메인 ‘전체’ 탭. 가입 화면은 자동 노출하지 않음 */
     setTimeout(() => {
       $('#splash').classList.add('done');
