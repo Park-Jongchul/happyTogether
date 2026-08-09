@@ -5,6 +5,7 @@ window.SCREENS = window.SCREENS || {};
 
   const CATS = [['all','전체'],['free','일상'],['empathy','공감'],['kids','육아'],
                 ['law','법률·재무'],['today','오늘의 이야기'],['anon','익명 고민']];
+  const ANON_CATS = ['양육','재혼','법률·재무','감정회복'];
 
   /* ── D10 커뮤니티 ─────────────────────── */
   S.community = function (q) {
@@ -121,7 +122,7 @@ window.SCREENS = window.SCREENS || {};
       return { bar: { title: '익명 공감방', back: true, center: true }, tab: false, html: lockView('익명게시판') };
     }
     const cat = q.ac || '전체';
-    const cats = ['전체','양육','재혼','법률·재무','감정회복'];
+    const cats = ['전체'].concat(ANON_CATS);
     const list = cat === '전체' ? DB.anonPosts : DB.anonPosts.filter(p => p.cat === cat);
 
     return { bar: { title: '익명 공감방', back: true, center: true,
@@ -149,10 +150,17 @@ window.SCREENS = window.SCREENS || {};
   S.write = function (q) {
     const anon = q.anon === '1';
     const boards = DB.boards.filter(b => b.board_id !== 'notice' && b.board_id !== 'anon');
+    /* 어느 게시판에서 눌렀는지(?b=) 를 기본값으로, 없으면 자유게시판 */
+    const cur = boards.some(b => b.board_id === q.b) ? q.b : 'free';
+    const acat = ANON_CATS.indexOf(q.ac) > -1 ? q.ac : ANON_CATS[0];
     return { bar: { title: anon ? '익명으로 쓰기' : '글쓰기', back: true, center: true }, tab: false, html:
-      (anon ? '<div class="notice"><i>🤫</i><div>이 글에는 새로운 익명번호가 부여됩니다. 이전 글과 연결되지 않아요.</div></div>' :
+      (anon ? '<div class="notice"><i>🤫</i><div>이 글에는 새로운 익명번호가 부여됩니다. 이전 글과 연결되지 않아요.</div></div>' +
+       '<div class="field"><label>주제</label><div class="opts wrapopts" data-radio="wacat">' +
+        ANON_CATS.map(c => '<button class="opt' + (c === acat ? ' on' : '') + '" data-val="' + esc(c) + '">' +
+          esc(c) + '</button>').join('') + '</div></div>' :
        '<div class="field"><label>게시판</label><div class="opts wrapopts" data-radio="wboard">' +
-        boards.map(b => '<button class="opt" data-val="' + b.board_id + '">' + esc(b.name) + '</button>').join('') +
+        boards.map(b => '<button class="opt' + (b.board_id === cur ? ' on' : '') + '" data-val="' + b.board_id + '">' +
+          esc(b.name) + '</button>').join('') +
         '</div></div>') +
       '<div class="field"><label>제목</label><input class="inp" id="w-title" placeholder="제목을 입력하세요"></div>' +
       '<div class="field"><label>내용</label>' +

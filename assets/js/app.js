@@ -103,12 +103,37 @@
     'submit-meeting': () => { toast('검수 요청이 접수되었습니다. 승인 후 공개됩니다.'); go('#/meetings'); },
 
     /* 글쓰기 */
-    write:      () => { if (gate('member', '글쓰기')) go('#/write'); },
-    'write-anon': () => { if (gate('verified', '익명 글쓰기')) go('#/write?anon=1'); },
+    write: () => {
+      if (!gate('member', '글쓰기')) return;
+      /* 지금 보고 있는 게시판을 글쓰기 화면의 기본 선택으로 넘깁니다 */
+      const m = location.hash.match(/^#\/board\/([^?/]+)/) || location.hash.match(/[?&]c=([^&]+)/);
+      const b = m && m[1] !== 'all' ? m[1] : '';
+      go('#/write' + (b ? '?b=' + b : ''));
+    },
+    'write-anon': () => {
+      if (!gate('verified', '익명 글쓰기')) return;
+      const m = location.hash.match(/[?&]ac=([^&]+)/);
+      const ac = m && decodeURIComponent(m[1]) !== '전체' ? m[1] : '';
+      go('#/write?anon=1' + (ac ? '&ac=' + ac : ''));
+    },
     'submit-post': () => {
-      const t = $('#w-title');
-      if (t && !t.value.trim()) return toast('제목을 입력해 주세요.');
-      toast('글이 등록되었습니다.'); UI.back();
+      const title = ($('#w-title') || {}).value, body = ($('#w-body') || {}).value;
+      if (!title || !title.trim()) return toast('제목을 입력해 주세요.');
+      if (!body  || !body.trim())  return toast('내용을 입력해 주세요.');
+      const pick = k => { const g = $('[data-radio="' + k + '"] .opt.on'); return g ? g.dataset.val : null; };
+      const base = { post_id: DB.newId(), title: title.trim(), body: body.trim(),
+                     likes: 0, comments: 0, at: '방금 전', ts: Date.now(), mine: true };
+
+      if (/[?&]anon=1/.test(location.hash)) {
+        const p = DB.addAnonPost(Object.assign(base, {
+          anon_no: 10 + Math.floor(Math.random() * 90), cat: pick('wacat') || '감정회복' }));
+        toast('익명으로 등록되었습니다.');
+        return go('#/post/' + p.post_id);
+      }
+      const p = DB.addPost(Object.assign(base, {
+        board_id: pick('wboard') || 'free', author: 'u_me', views: 0 }));
+      toast('글이 등록되었습니다.');
+      go('#/board/' + p.board_id);
     },
     'focus-comment': () => { const i = $('#cmt-input'); if (i) i.focus(); },
     'cmt-reply': () => { if (gate('member', '답글 작성')) { const i = $('#cmt-input'); if (i) i.focus(); } },
@@ -144,7 +169,7 @@
         '<button class="switch' + (i < 3 ? ' on' : '') + '" data-switch></button></div>').join('') +
       '</div><div class="sh-foot"><button class="btn" data-close-sheet>적용</button></div>'),
 
-    'reset-demo': () => { UI.reset(); toast('데모 데이터를 초기화했습니다.'); go('#/home'); location.reload(); },
+    'reset-demo': () => { UI.reset(); DB.resetMine(); toast('데모 데이터를 초기화했습니다.'); go('#/home'); location.reload(); },
     qclear:  () => go('#/search'),
     'clear-recent': () => { set({ recent: [] }); toast('최근 검색어를 모두 삭제했습니다.'); render(); }
   };
@@ -209,7 +234,8 @@
       const i = $('#cmt-input');
       if (!i || !i.value.trim()) { toast('댓글을 입력해 주세요.'); return true; }
       if (/(씨발|병신|바보)/.test(i.value)) { toast('공격적인 표현이 감지되었습니다. 문장을 확인해 주세요.'); return true; }
-      i.value = ''; toast('댓글을 등록했습니다.'); return true;
+      DB.addComment(id, { user:'u_me', body: i.value.trim(), at:'방금 전', ts: Date.now(), likes: 0, mine: true });
+      i.value = ''; toast('댓글을 등록했습니다.'); render(); return true;
     }
     if (act.indexOf('follow-') === 0) { if (gate('member', '팔로우')) toast('팔로우했습니다.'); return true; }
     if (act.indexOf('dm-') === 0) {

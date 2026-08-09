@@ -135,9 +135,66 @@ window.DB = (function () {
   const interests = ['산책','등산','골프','여행','와인','반려동물','러닝','카페','독서','사진','요리','전시','캠핑','자전거'];
   const regions = ['서울','경기','인천','강원','대전','대구','부산','광주','제주'];
 
+  /* ── 내가 쓴 글·댓글 저장소 ─────────────────
+     서버가 붙기 전까지 사용자가 작성한 내용을 브라우저에 보관합니다.
+     docs/BACKEND.md 의 POST /posts · POST /posts/{id}/comments 가 준비되면
+     이 블록과 add* 메서드만 API 호출로 교체하면 됩니다. */
+  const WKEY = 'ht.userposts.v1';
+  let mine = { posts: [], anonPosts: [], comments: {} };
+  try {
+    const o = JSON.parse(localStorage.getItem(WKEY) || 'null');
+    if (o) mine = { posts: o.posts || [], anonPosts: o.anonPosts || [], comments: o.comments || {} };
+  } catch (e) {}
+  const saveMine = () => { try { localStorage.setItem(WKEY, JSON.stringify(mine)); } catch (e) {} };
+
+  /* 작성 시각 → '방금 전 / 12분 전 / 3시간 전 / 2일 전' */
+  function ago (ts) {
+    const m = Math.floor(Math.max(0, Date.now() - ts) / 60000);
+    if (m < 1)  return '방금 전';
+    if (m < 60) return m + '분 전';
+    const h = Math.floor(m / 60);
+    return h < 24 ? h + '시간 전' : Math.floor(h / 24) + '일 전';
+  }
+  const touch = p => { if (p.ts) p.at = ago(p.ts); return p; };
+
+  /* 최신순으로 보관하므로 목록 맨 앞에 그대로 붙입니다 */
+  posts.unshift.apply(posts, mine.posts.map(touch));
+  anonPosts.unshift.apply(anonPosts, mine.anonPosts.map(touch));
+  /* 댓글은 시간순이라 기존 댓글 뒤에 붙입니다.
+     목업 글의 댓글 수는 저장되지 않으므로 여기서 다시 더해 줍니다
+     (내가 쓴 글은 글 객체 자체가 저장돼 이미 반영되어 있습니다) */
+  Object.keys(mine.comments).forEach(pid => {
+    const add = mine.comments[pid].map(touch);
+    comments[pid] = (comments[pid] || []).concat(add);
+    const p = posts.concat(anonPosts).filter(x => x.post_id === pid)[0];
+    if (p && !p.mine) p.comments = (p.comments || 0) + add.length;
+  });
+
+  /* 로그인한 '나' — 세션 프로필을 그대로 쓰는 가상 사용자 */
+  function meUser () {
+    const s = (window.UI && UI.session) ? UI.session() : {};
+    return { user_id:'u_me', nickname: s.nickname || '나', region: s.region || '서울',
+             age: s.age || '40대', grade: s.grade || 'member', manner: s.manner || 4.7,
+             meets: (s.myMeets || []).length, noshow: 0, interests: s.interests || [],
+             kids: s.kids || '비공개', remarry: s.remarry || '비공개',
+             color: 'c2', bio: s.bio || '', me: true };
+  }
+
   return { community, boards, users, posts, anonPosts, comments, meetings, chats,
-           voiceRooms, notifications, searchRecent, searchHot, interests, regions,
-           user(id){ return this.users[id] || this.users.u_admin; },
+           voiceRooms, notifications, searchRecent, searchHot, interests, regions, ago,
+           newId(){ return 'u' + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36); },
+           addPost(p){ this.posts.unshift(p); mine.posts.unshift(p); saveMine(); return p; },
+           addAnonPost(p){ this.anonPosts.unshift(p); mine.anonPosts.unshift(p); saveMine(); return p; },
+           addComment(pid, c){
+             (this.comments[pid] = this.comments[pid] || []).push(c);
+             (mine.comments[pid] = mine.comments[pid] || []).push(c);
+             const p = this.post(pid);
+             if (p) p.comments = (p.comments || 0) + 1;   // 내 글이면 mine 쪽도 같은 객체라 함께 반영됩니다
+             saveMine();
+             return c;
+           },
+           resetMine(){ try { localStorage.removeItem(WKEY); } catch (e) {} },
+           user(id){ return id === 'u_me' ? meUser() : (this.users[id] || this.users.u_admin); },
            board(id){ return this.boards.find(b=>b.board_id===id) || {name:'게시판',access:'public'}; },
            post(id){ return this.posts.find(p=>p.post_id===id) || this.anonPosts.find(p=>p.post_id===id); },
            meeting(id){ return this.meetings.find(m=>m.meeting_id===id); },
