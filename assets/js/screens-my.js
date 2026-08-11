@@ -1,10 +1,13 @@
 /* D15 마이페이지 · D16 신고/안심센터 · 설정 */
 window.SCREENS = window.SCREENS || {};
 (function (S) {
-  const { esc, avatar, session, isGuest, isVerified } = UI;
+  const { esc, num, avatar, session, isGuest, isVerified } = UI;
 
   /* ── D15 마이페이지 ───────────────────── */
   S.my = function (q) {
+    /* ?t= 이 붙으면 내 콘텐츠 목록(내 글 · 댓글 · 저장 · 익명) */
+    if (q.t && !isGuest()) return myContent(q);
+
     const bar = { title: '마이', actions: [{ act:'noti', icon:'🔔', dot:true }, { act:'drawer', icon:'☰' }] };
     if (isGuest()) {
       return { bar, tab: 'my', html:
@@ -22,6 +25,7 @@ window.SCREENS = window.SCREENS || {};
 
     const s = session();
     const upcoming = s.myMeets.length;
+    const written = DB.myPosts().length + DB.myAnonPosts().length + DB.myComments().length;
 
     const group = (title, rows) =>
       '<div class="sec-head"><h3>' + title + '</h3></div><div class="list">' + rows.join('') + '</div>';
@@ -39,7 +43,7 @@ window.SCREENS = window.SCREENS || {};
 
       '<div class="mystats">' +
         '<a href="#/my-meetings" data-nav><b>' + upcoming + '</b><span>예정 모임</span></a>' +
-        '<a href="#/my?t=posts" data-nav><b>' + (s.liked.length + 2) + '</b><span>내 글·댓글</span></a>' +
+        '<a href="#/my?t=posts" data-nav><b>' + written + '</b><span>내 글·댓글</span></a>' +
         '<a href="#/my?t=saved" data-nav><b>' + s.saved.length + '</b><span>저장</span></a>' +
       '</div>' +
 
@@ -48,7 +52,7 @@ window.SCREENS = window.SCREENS || {};
         menuRow('완료 · 후기 작성', '#/my-meetings'), menuRow('내가 개설한 모임', '#/my-meetings')
       ]) +
       group('내 콘텐츠', [
-        menuRow('내가 쓴 글', '#/my?t=posts'), menuRow('내 댓글', '#/my?t=posts'),
+        menuRow('내가 쓴 글', '#/my?t=posts'), menuRow('내 댓글', '#/my?t=comments'),
         menuRow('저장한 글', '#/my?t=saved'),
         isVerified() ? menuRow('내 익명글 관리', '#/my?t=anon') : ''
       ]) +
@@ -74,6 +78,75 @@ window.SCREENS = window.SCREENS || {};
         '<button class="btn ghost" data-logout>로그아웃</button></div>' +
       '<div class="ver">행복하자 우리 · Happy Together v1.0</div>' };
   };
+
+  /* ── 내 콘텐츠 (#/my?t=…) ───────────────
+     서버가 붙으면 DB.my* 만 GET /me/posts · /me/comments · /me/saved 로 바꾸면 됩니다. */
+  function myContent (q) {
+    const posts = DB.myPosts(), anon = DB.myAnonPosts(), cmts = DB.myComments();
+    const saved = session().saved.map(id => DB.post(id)).filter(Boolean);
+
+    const tabs = [['posts','내 글', posts.length], ['comments','댓글', cmts.length],
+                  ['saved','저장', saved.length]];
+    if (isVerified()) tabs.push(['anon','익명글', anon.length]);
+
+    let t = q.t;
+    if (!tabs.some(x => x[0] === t)) t = 'posts';
+
+    let body;
+    if (t === 'posts') {
+      body = posts.length
+        ? list(posts.map(p => myRow('#/post/' + p.post_id, p.title,
+            esc(DB.board(p.board_id).name) + ' · ' + esc(p.at) + ' · 댓글 ' + p.comments +
+            ' · 공감 ' + p.likes + ' · 조회 ' + num(p.views || 0),
+            'del-post-' + p.post_id)))
+        : empty('📝', '아직 쓴 글이 없습니다.', '#/community', '커뮤니티 둘러보기');
+    } else if (t === 'comments') {
+      body = cmts.length
+        ? list(cmts.map(x => {
+            const p = DB.post(x.pid);
+            return myRow('#/post/' + x.pid, x.c.body,
+              (p ? esc(p.title) : '삭제된 글') + ' · ' + esc(x.c.at),
+              'del-cmt-' + x.pid + '-' + x.i);
+          }))
+        : empty('💬', '아직 남긴 댓글이 없습니다.', '#/community', '커뮤니티 둘러보기');
+    } else if (t === 'saved') {
+      body = saved.length
+        ? list(saved.map(p => myRow('#/post/' + p.post_id, p.title,
+            (p.anon_no ? '익명게시판' : esc(DB.board(p.board_id).name)) + ' · ' + esc(p.at) +
+            ' · 공감 ' + p.likes, 'save-' + p.post_id, '해제')))
+        : empty('🔖', '저장한 글이 없습니다.<br>글 상세에서 🔖 저장을 눌러보세요.', '#/community', '커뮤니티 둘러보기');
+    } else {
+      body = anon.length
+        ? list(anon.map(p => myRow('#/post/' + p.post_id, p.title,
+            '익명 ' + p.anon_no + ' · ' + esc(p.cat) + ' · ' + esc(p.at) + ' · 댓글 ' + p.comments,
+            'del-post-' + p.post_id)))
+        : empty('🤫', '아직 익명으로 쓴 글이 없습니다.', '#/anon', '익명 공감방 가기');
+    }
+
+    return { bar: { title: '내 콘텐츠', back: true, center: true }, tab: 'my', html:
+      '<div class="chips">' + tabs.map(x =>
+        '<a class="chip' + (x[0] === t ? ' on' : '') + '" href="#/my?t=' + x[0] + '" data-nav>' +
+        x[1] + ' ' + x[2] + '</a>').join('') + '</div>' +
+      body +
+      (t === 'comments'
+        ? '<div class="notice gray"><i>ℹ️</i><div>댓글을 지워도 원글은 남습니다.</div></div>' : '') };
+  }
+
+  const list = rows => '<div class="list">' + rows.join('') + '</div>';
+
+  /* 제목은 글로 이동, 오른쪽 버튼은 삭제 · 저장 해제 (링크 안에 두면 이동으로 먹힙니다) */
+  function myRow (href, title, meta, act, label) {
+    return '<div class="row">' +
+      '<a class="row-main" href="' + href + '" data-nav>' +
+        '<div class="row-title wrap">' + esc(title) + '</div>' +
+        '<div class="row-meta">' + meta + '</div></a>' +
+      '<button class="delbtn" data-act="' + act + '">' + (label || '삭제') + '</button></div>';
+  }
+
+  function empty (icon, text, href, cta) {
+    return '<div class="empty"><b>' + icon + '</b>' + text +
+      '<br><a href="' + href + '" data-nav style="color:var(--brand);font-weight:700">' + cta + '</a></div>';
+  }
 
   function menuRow (label, href, right) {
     if (!label) return '';

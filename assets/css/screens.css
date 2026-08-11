@@ -84,6 +84,11 @@ mark{background:#fff3bf;color:inherit;border-radius:3px;padding:0 1px}
   background:var(--brand);color:#fff;font-size:16px;display:grid;place-items:center;border:2.5px solid var(--bg)}
 .visbtn{font-size:11.5px;font-weight:700;color:var(--brand);background:var(--brand-soft);
   padding:3px 9px;border-radius:999px;margin-left:6px}
+/* 내 콘텐츠 목록의 삭제 · 저장 해제 버튼 */
+.delbtn{flex:0 0 auto;font-size:11.5px;font-weight:700;color:var(--muted);background:var(--line2);
+  padding:6px 11px;border-radius:999px}
+.delbtn:active{background:var(--line);color:var(--ink2)}
+.list .row > a.row-main{display:block;color:inherit}
 .wrapopts{flex-wrap:wrap}
 .wrapopts .opt{flex:0 0 auto;min-width:0;padding:0 15px}
 .stepno{flex:0 0 26px;height:26px;border-radius:50%;background:#eaeef3;color:var(--muted);

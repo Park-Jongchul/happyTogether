@@ -193,6 +193,36 @@ window.DB = (function () {
              saveMine();
              return c;
            },
+           /* 마이페이지용 — 내가 작성한 것만 최신순으로 */
+           myPosts(){ return mine.posts.slice(); },
+           myAnonPosts(){ return mine.anonPosts.slice(); },
+           myComments(){
+             const out = [];
+             Object.keys(mine.comments).forEach(pid =>
+               mine.comments[pid].forEach((c, i) => out.push({ pid: pid, i: i, c: c })));
+             return out.sort((a, b) => (b.c.ts || 0) - (a.c.ts || 0));
+           },
+           delPost(id){
+             const cut = arr => { const i = arr.map(p => p.post_id).indexOf(id);
+                                  if (i > -1) arr.splice(i, 1); return i > -1; };
+             const a = cut(mine.posts), b = cut(mine.anonPosts);
+             if (!a && !b) return false;                 // 내가 쓴 글만 지울 수 있습니다
+             cut(this.posts); cut(this.anonPosts);
+             delete this.comments[id]; delete mine.comments[id];
+             saveMine(); return true;
+           },
+           delComment(pid, i){
+             const list = mine.comments[pid];
+             if (!list || !list[i]) return false;
+             const c = list.splice(i, 1)[0];
+             const all = this.comments[pid] || [];       // 저장된 객체를 그대로 담고 있어 참조로 찾습니다
+             const j = all.indexOf(c);
+             if (j > -1) all.splice(j, 1);
+             const p = this.post(pid);
+             if (p && p.comments) p.comments--;
+             if (!list.length) delete mine.comments[pid];
+             saveMine(); return true;
+           },
            resetMine(){ try { localStorage.removeItem(WKEY); } catch (e) {} },
            user(id){ return id === 'u_me' ? meUser() : (this.users[id] || this.users.u_admin); },
            board(id){ return this.boards.find(b=>b.board_id===id) || {name:'게시판',access:'public'}; },

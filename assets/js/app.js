@@ -174,6 +174,15 @@
     'clear-recent': () => { set({ recent: [] }); toast('최근 검색어를 모두 삭제했습니다.'); render(); }
   };
 
+  /* 삭제처럼 되돌릴 수 없는 동작 확인.
+     확인 버튼에 data-close-sheet 을 달면 클릭이 시트 닫기에서 끝나므로 액션에서 닫습니다. */
+  function confirmSheet (title, desc, act) {
+    UI.sheet('<div class="sh-head"><h3>' + UI.esc(title) + '</h3><p>' + UI.esc(desc) + '</p></div>' +
+      '<div class="sh-foot" style="flex-direction:row">' +
+        '<button class="btn line" data-close-sheet>취소</button>' +
+        '<button class="btn coral" data-act="' + act + '">삭제</button></div>');
+  }
+
   function sheetList (title, items) {
     return '<div class="sh-head"><h3>' + UI.esc(title) + '</h3></div><div class="sh-body">' +
       items.map(t => '<button class="row" style="padding-left:0;padding-right:0" data-close-sheet>' +
@@ -228,6 +237,26 @@
       const s = session(), i = s.saved.indexOf(id);
       if (i > -1) s.saved.splice(i, 1); else s.saved.push(id);
       UI.save(); toast(i > -1 ? '저장을 해제했습니다.' : '🔖 저장했습니다.'); render(); return true;
+    }
+    /* 내 글 · 댓글 삭제 — del-* 은 확인 시트, rm-* 이 실제 삭제 */
+    if (act.indexOf('del-post-') === 0) {
+      confirmSheet('이 글을 삭제할까요?', '글에 달린 댓글도 함께 사라지며 되돌릴 수 없습니다.', 'rm-post-' + id);
+      return true;
+    }
+    if (act.indexOf('rm-post-') === 0) {
+      UI.closeSheet();
+      toast(DB.delPost(id) ? '글을 삭제했습니다.' : '삭제할 수 없는 글입니다.');
+      render(); return true;
+    }
+    if (act.indexOf('del-cmt-') === 0) {
+      confirmSheet('이 댓글을 삭제할까요?', '되돌릴 수 없습니다.', 'rm-cmt-' + act.slice(8));
+      return true;
+    }
+    if (act.indexOf('rm-cmt-') === 0) {
+      UI.closeSheet();
+      const rest = act.slice(7), k = rest.lastIndexOf('-');
+      toast(DB.delComment(rest.slice(0, k), +rest.slice(k + 1)) ? '댓글을 삭제했습니다.' : '삭제할 수 없는 댓글입니다.');
+      render(); return true;
     }
     if (act.indexOf('send-comment-') === 0) {
       if (!gate('member', '댓글 작성')) return true;
