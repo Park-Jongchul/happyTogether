@@ -27,7 +27,8 @@ window.SCREENS = window.SCREENS || {};
           '<div class="roomic">' + icon + '</div>' +
           '<div class="row-main"><div class="row-title">' + esc(c.title) +
           (c.type !== 'dm' ? ' <span class="cnt">' + c.members + '</span>' : '') + '</div>' +
-          '<div class="row-meta">' + esc(c.last) + '</div></div>' +
+          '<div class="row-meta" data-room="' + c.room_id + '">' +
+          esc(SUPA.enabled ? '' : c.last) + '</div></div>' +
           '<div style="text-align:right;flex:0 0 auto"><div style="font-size:11px;color:var(--muted)">' + esc(c.at) + '</div>' +
           (c.unread ? '<span class="unread">' + c.unread + '</span>' : '') + '</div></a>';
       }).join('') + '</div>' +
@@ -49,7 +50,16 @@ window.SCREENS = window.SCREENS || {};
         '<div class="notice"><i>🔇</i><div>보이스룸은 기본적으로 녹음하지 않습니다. 별도 동의 없이 상시 녹음하지 않아요.</div></div>' +
         '<button class="fab" data-act="new-voice">🎙 보이스룸 열기</button>';
     }
-    return { bar, tab: 'chats', html: body };
+    return { bar, tab: 'chats', html: body, after: function () {
+      /* 서버가 켜져 있으면 목록 미리보기도 실제 마지막 메시지로 채웁니다 */
+      if (!SUPA.enabled || tab !== 'chat') return;
+      SUPA.lastPerRoom(DB.chats.map(c => c.room_id)).then(map => {
+        UI.$$('[data-room]').forEach(el => {
+          const m = map && map[el.dataset.room];
+          el.textContent = m ? (m.user === 'me' ? '나: ' : m.name + ': ') + m.body : '아직 대화가 없습니다';
+        });
+      });
+    } };
   };
 
   /* ── D12 / D20 채팅방 ──────────────────── */
@@ -59,26 +69,15 @@ window.SCREENS = window.SCREENS || {};
     if (!isVerified()) return { bar: { title: c.title, back: true, center: true }, tab: false, html: vipGate('단체채팅') };
     DB.readRoom(id);                       // 방에 들어오면 안 읽음 배지를 지웁니다
 
-    const msgs = c.msgs.map(m => {
-      if (m.user === 'me') {
-        return '<div class="msg me"><div class="bubble">' + esc(m.body) + '</div>' +
-               '<span class="mtime">' + esc(m.at) + '</span></div>';
-      }
-      const u = DB.user(m.user);
-      return '<div class="msg">' +
-        '<a href="#/user/' + u.user_id + '" data-nav>' + avatar(u, 'sm') + '</a>' +
-        '<div><div class="mname">' + esc(u.nickname) +
-        (u.user_id === c.msgs[0].user && c.type !== 'dm' ? ' <span class="badge">모임장</span>' : '') + '</div>' +
-        '<div class="bubble">' + esc(m.body) + '</div></div>' +
-        '<span class="mtime">' + esc(m.at) + '</span></div>';
-    }).join('');
+    /* 서버가 켜져 있으면 실제 대화만 보여줍니다. 목업 대화와 섞으면 무엇이 진짜인지 알 수 없습니다. */
+    const msgs = SUPA.enabled ? '' : c.msgs.map(m => bubble(m, c)).join('');
 
     return { bar: { title: c.title, sub: c.type === 'dm' ? '1:1 대화' : c.members + '명 참여', back: true,
                     actions: [{ act:'chat-menu-' + id, icon:'⋮' }] },
       tab: false, html:
       (c.notice ? '<div class="pinnotice"><b>공지</b> ' + esc(c.notice) + '<span class="row-arrow">›</span></div>' : '') +
       '<div class="safebar">🛡️ 연락처·계좌번호 공유 요청과 불쾌한 메시지는 신고할 수 있습니다.</div>' +
-      '<div class="msgs" id="msgs">' + msgs + '</div>' +
+      '<div class="msgs" id="msgs">' + (SUPA.enabled ? loading() : msgs) + '</div>' +
       '<div class="chat-bar">' +
         '<button class="cb-ic" data-act="chat-plus">＋</button>' +
         '<input class="inp" id="chat-input" placeholder="메시지 입력" enterkeyhint="send">' +
@@ -90,8 +89,70 @@ window.SCREENS = window.SCREENS || {};
         if (box) box.scrollTop = box.scrollHeight;
         const inp = UI.$('#chat-input');
         if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') sendMsg(); });
+        if (SUPA.enabled) live(id, c);
       } };
   };
+
+  const loading = () => '<div class="empty" style="padding:44px">대화를 불러오는 중…</div>';
+
+  /* 말풍선 하나. 서버 메시지는 name 이 실려 오고, 목업 메시지는 user 로 회원을 찾습니다. */
+  function bubble (m, c) {
+    if (m.user === 'me') {
+      return '<div class="msg me"><div class="bubble">' + esc(m.body) + '</div>' +
+             '<span class="mtime">' + esc(m.at) + '</span></div>';
+    }
+    if (m.name) {
+      const nick = m.name;
+      return '<div class="msg">' + avatar({ nickname: nick, color: 'c4' }, 'sm') +
+        '<div><div class="mname">' + esc(nick) + '</div>' +
+        '<div class="bubble">' + esc(m.body) + '</div></div>' +
+        '<span class="mtime">' + esc(m.at) + '</span></div>';
+    }
+    const u = DB.user(m.user);
+    return '<div class="msg">' +
+      '<a href="#/user/' + u.user_id + '" data-nav>' + avatar(u, 'sm') + '</a>' +
+      '<div><div class="mname">' + esc(u.nickname) +
+      (u.user_id === c.msgs[0].user && c.type !== 'dm' ? ' <span class="badge">모임장</span>' : '') + '</div>' +
+      '<div class="bubble">' + esc(m.body) + '</div></div>' +
+      '<span class="mtime">' + esc(m.at) + '</span></div>';
+  }
+
+  /* ── 실시간 연결 ───────────────────────
+     방을 벗어나면 반드시 구독을 끊습니다 (app.js 의 render 가 leaveChat 을 부릅니다). */
+  let unsub = null, liveRoom = null;
+  S.leaveChat = function () { if (unsub) { unsub(); unsub = null; liveRoom = null; } };
+
+  function live (id, c) {
+    S.leaveChat();
+    liveRoom = id;
+    const paint = html => { const box = UI.$('#msgs');
+                            if (box && liveRoom === id) { box.innerHTML = html; box.scrollTop = box.scrollHeight; } };
+
+    SUPA.history(id).then(list => {
+      if (liveRoom !== id) return;
+      if (!list) {                                   // 서버에 못 닿음 — 목업으로 되돌립니다
+        paint('<div class="notice warn" style="margin:10px 12px"><i>⚠️</i><div>' +
+              '실시간 서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.</div></div>' +
+              c.msgs.map(m => bubble(m, c)).join(''));
+        return;
+      }
+      paint(list.length ? list.map(m => bubble(m, c)).join('')
+                        : '<div class="empty" style="padding:44px"><b>💬</b>아직 대화가 없습니다.<br>먼저 인사를 건네보세요.</div>');
+      unsub = SUPA.subscribe(id, m => {
+        if (liveRoom !== id || m.user === 'me') return;   // 내 메시지는 보낼 때 이미 붙였습니다
+        append(bubble(m, c));
+      });
+    });
+  }
+
+  function append (html) {
+    const box = UI.$('#msgs');
+    if (!box) return;
+    const empty = box.querySelector('.empty');
+    if (empty) box.innerHTML = '';
+    box.insertAdjacentHTML('beforeend', html);
+    box.scrollTop = box.scrollHeight;
+  }
 
   function sendMsg () {
     const inp = UI.$('#chat-input');
@@ -100,20 +161,24 @@ window.SCREENS = window.SCREENS || {};
     if (/\d{2,3}[- ]?\d{3,4}[- ]?\d{4}|\d{10,}/.test(v)) {
       UI.toast('전화번호·계좌번호로 보이는 내용이 감지되었습니다. 안전을 위해 확인해 주세요.');
     }
-    /* 화면에만 붙이면 방을 나갔다 오는 순간 사라지므로 먼저 저장합니다 */
     const id = (location.hash.match(/^#\/chat\/([^?/]+)/) || [])[1];
-    const m = DB.addMsg(id, v);
-    if (!m) return;
-
-    const box = UI.$('#msgs');
-    const d = document.createElement('div');
-    d.className = 'msg me';
-    d.innerHTML = '<div class="bubble">' + UI.esc(v) + '</div>' +
-                  '<span class="mtime">' + UI.esc(m.at) + '</span>';
-    box.appendChild(d);
-    box.scrollTop = box.scrollHeight;
+    if (!id) return;
     inp.value = '';
+
+    if (SUPA.enabled) {
+      const at = new Date(), h = at.getHours();
+      append(bubble({ user:'me', body: v,
+        at: (h < 12 ? '오전 ' : '오후 ') + (h % 12 || 12) + ':' + ('0' + at.getMinutes()).slice(-2) }));
+      SUPA.send(id, v, session().nickname).then(m => {
+        if (!m) UI.toast('메시지를 보내지 못했습니다. 연결을 확인해 주세요.');
+      });
+      return;
+    }
+    /* 로컬 모드 — 화면에만 붙이면 방을 나갔다 오는 순간 사라지므로 먼저 저장합니다 */
+    const m = DB.addMsg(id, v);
+    if (m) append(bubble(m, c0(id)));
   }
+  const c0 = id => DB.chat(id) || { msgs: [{}], type: 'dm' };
   S.sendMsg = sendMsg;
 
   /* ── D21 보이스룸 ─────────────────────── */

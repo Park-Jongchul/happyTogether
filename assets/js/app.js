@@ -56,6 +56,7 @@
   let lastKey = '';
 
   function render () {
+    if (SCREENS.leaveChat) SCREENS.leaveChat();   // 채팅방을 벗어나면 실시간 구독 해제
     const r = parse();
     /* 보이스룸 목록은 대화 탭으로 흡수 */
     if (r.name === 'voice' && !r.id) return go('#/chats?t=voice');
