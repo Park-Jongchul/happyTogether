@@ -57,6 +57,7 @@ window.SCREENS = window.SCREENS || {};
     const c = DB.chat(id);
     if (!c) return SCREENS.notfound();
     if (!isVerified()) return { bar: { title: c.title, back: true, center: true }, tab: false, html: vipGate('단체채팅') };
+    DB.readRoom(id);                       // 방에 들어오면 안 읽음 배지를 지웁니다
 
     const msgs = c.msgs.map(m => {
       if (m.user === 'me') {
@@ -99,10 +100,16 @@ window.SCREENS = window.SCREENS || {};
     if (/\d{2,3}[- ]?\d{3,4}[- ]?\d{4}|\d{10,}/.test(v)) {
       UI.toast('전화번호·계좌번호로 보이는 내용이 감지되었습니다. 안전을 위해 확인해 주세요.');
     }
+    /* 화면에만 붙이면 방을 나갔다 오는 순간 사라지므로 먼저 저장합니다 */
+    const id = (location.hash.match(/^#\/chat\/([^?/]+)/) || [])[1];
+    const m = DB.addMsg(id, v);
+    if (!m) return;
+
     const box = UI.$('#msgs');
     const d = document.createElement('div');
     d.className = 'msg me';
-    d.innerHTML = '<div class="bubble">' + UI.esc(v) + '</div><span class="mtime">지금</span>';
+    d.innerHTML = '<div class="bubble">' + UI.esc(v) + '</div>' +
+                  '<span class="mtime">' + UI.esc(m.at) + '</span>';
     box.appendChild(d);
     box.scrollTop = box.scrollHeight;
     inp.value = '';

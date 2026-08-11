@@ -170,6 +170,29 @@ window.DB = (function () {
     if (p && !p.mine) p.comments = (p.comments || 0) + add.length;
   });
 
+  /* ── 내가 보낸 채팅 ─────────────────────
+     여기 보관하는 건 '내가 보낸 것'뿐입니다. 상대 메시지는 서버(Realtime)가 있어야 옵니다.
+     docs/BACKEND.md 8단계에서 POST /rooms/:id/messages + WS 구독으로 교체합니다. */
+  const CKEY = 'ht.chat.v1';
+  let myMsgs = {};
+  try { myMsgs = JSON.parse(localStorage.getItem(CKEY) || '{}') || {}; } catch (e) {}
+  const saveMsgs = () => { try { localStorage.setItem(CKEY, JSON.stringify(myMsgs)); } catch (e) {} };
+
+  /* 12:05 → '오후 12:05' */
+  function clock (ts) {
+    const d = new Date(ts);
+    const h = d.getHours();
+    return (h < 12 ? '오전 ' : '오후 ') + (h % 12 || 12) + ':' + ('0' + d.getMinutes()).slice(-2);
+  }
+
+  chats.forEach(c => {
+    const add = myMsgs[c.room_id] || [];
+    if (!add.length) return;
+    c.msgs = c.msgs.concat(add);
+    const last = add[add.length - 1];
+    c.last = last.body; c.at = ago(last.ts); c.unread = 0;
+  });
+
   /* 로그인한 '나' — 세션 프로필을 그대로 쓰는 가상 사용자 */
   function meUser () {
     const s = (window.UI && UI.session) ? UI.session() : {};
@@ -223,7 +246,20 @@ window.DB = (function () {
              if (!list.length) delete mine.comments[pid];
              saveMine(); return true;
            },
-           resetMine(){ try { localStorage.removeItem(WKEY); } catch (e) {} },
+           /* 채팅 — 보낸 메시지를 방과 대화 목록에 함께 반영합니다 */
+           addMsg(roomId, body){
+             const c = this.chat(roomId);
+             if (!c) return null;
+             const ts = Date.now();
+             const m = { user:'me', body: body, at: clock(ts), ts: ts, mine: true };
+             c.msgs.push(m);
+             (myMsgs[roomId] = myMsgs[roomId] || []).push(m);
+             c.last = body; c.at = '방금 전'; c.unread = 0;
+             saveMsgs();
+             return m;
+           },
+           readRoom(roomId){ const c = this.chat(roomId); if (c) c.unread = 0; },
+           resetMine(){ try { localStorage.removeItem(WKEY); localStorage.removeItem(CKEY); } catch (e) {} },
            user(id){ return id === 'u_me' ? meUser() : (this.users[id] || this.users.u_admin); },
            board(id){ return this.boards.find(b=>b.board_id===id) || {name:'게시판',access:'public'}; },
            post(id){ return this.posts.find(p=>p.post_id===id) || this.anonPosts.find(p=>p.post_id===id); },
