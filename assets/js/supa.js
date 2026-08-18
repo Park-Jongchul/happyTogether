@@ -7,8 +7,8 @@
 window.SUPA = (function () {
 
   const CONFIG = {
-    url: '',        // 예: https://abcdefghijklm.supabase.co
-    anonKey: ''     // 예: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+    url: 'https://jspcebieuxohibapurfu.supabase.co',
+    anonKey: 'sb_publishable_WIiVWAdNc-_peY0okqAmTQ_qNyN8htj'
   };
 
   const SDK = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';

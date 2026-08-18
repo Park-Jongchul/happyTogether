@@ -23,6 +23,12 @@ create index if not exists rt_chat_message_room_idx
 
 alter table public.rt_chat_message enable row level security;
 
+-- 프로젝트 생성 시 "Automatically expose new tables"를 끈 경우에도
+-- 로그인 사용자만 메시지를 읽고 쓰도록 최소 테이블 권한을 명시합니다.
+revoke all on public.rt_chat_message from anon;
+grant select, insert, delete on public.rt_chat_message to authenticated;
+grant usage, select on sequence public.rt_chat_message_message_id_seq to authenticated;
+
 -- 읽기: 로그인한 사용자(익명 로그인 포함) 전체.
 --       방별 권한은 chat_member 가 생기는 8단계에서 좁힙니다.
 drop policy if exists "rt read signed in" on public.rt_chat_message;

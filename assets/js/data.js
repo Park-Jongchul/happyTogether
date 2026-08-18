@@ -35,7 +35,10 @@ window.DB = (function () {
   };
 
   const posts = [
-    { post_id:'p1', board_id:'notice', author:'u_admin', title:'신규회원 가입 안내와 커뮤니티 이용수칙', body:'행복하자 우리는 돌싱 회원 여러분이 부담 없이 일상을 나누는 공간입니다.\n\n1. 서로의 이혼 사유를 묻지 않습니다.\n2. 연애·소개 목적만을 강요하지 않습니다.\n3. 영업·홍보·다단계 게시물은 즉시 제재합니다.\n4. 연락처·계좌번호는 공개 게시판에 남기지 않습니다.\n\n따뜻한 커뮤니티를 함께 만들어 주세요.', pin:true, views:2480, likes:120, comments:14, at:'2일 전' },
+    { post_id:'p1', board_id:'notice', ncat:'필독', author:'u_admin', title:'신규회원 가입 안내와 커뮤니티 이용수칙', body:'행복하자 우리는 돌싱 회원 여러분이 부담 없이 일상을 나누는 공간입니다.\n\n1. 서로의 이혼 사유를 묻지 않습니다.\n2. 연애·소개 목적만을 강요하지 않습니다.\n3. 영업·홍보·다단계 게시물은 즉시 제재합니다.\n4. 연락처·계좌번호는 공개 게시판에 남기지 않습니다.\n\n따뜻한 커뮤니티를 함께 만들어 주세요.', pin:true, views:2480, likes:120, comments:14, at:'2일 전' },
+    { post_id:'n2', board_id:'notice', ncat:'운영정책', author:'u_admin', title:'개인정보 처리방침 및 운영정책 안내', body:'회원님의 개인정보는 목적 달성 후 지체 없이 파기합니다.\n\n· 돌싱 인증 증빙 서류는 심사 완료 후 30일 이내 파기합니다.\n· 운영자 열람 기록은 3년간 보관하며, 회원이 요청하면 열람 내역을 확인해 드립니다.\n· 신고 접수 자료는 처리 완료 후 6개월간 보관합니다.', views:1204, likes:38, comments:4, at:'1주 전' },
+    { post_id:'n3', board_id:'notice', ncat:'이벤트', author:'u_admin', title:'8월 첫 모임 참가비 지원 이벤트', body:'8월 한 달간 처음 모임에 참가하시는 회원께 참가비 1만 원을 지원합니다.\n신청은 모임 참가 확정 후 자동 적용되며, 1인 1회에 한합니다.', views:860, likes:57, comments:11, at:'3일 전' },
+    { post_id:'n4', board_id:'notice', ncat:'업데이트', author:'u_admin', title:'v1.0 업데이트 — 익명 공감방과 보이스룸이 열렸습니다', body:'정회원 인증을 마치신 분들은 이제 익명 공감방과 보이스룸을 이용하실 수 있습니다.\n\n· 익명 공감방: 글마다 새로운 익명번호가 부여됩니다.\n· 보이스룸: 별도 동의 없이 녹음하지 않습니다.', views:642, likes:44, comments:6, at:'5일 전' },
     { post_id:'p2', board_id:'hello', author:'u_sky', title:'새로 가입했습니다. 잘 부탁드려요', body:'서울 강서구에 살고 있는 40대입니다.\n혼자 지낸 지 2년 됐는데, 비슷한 시간을 보내고 계신 분들과 편하게 이야기 나누고 싶어 가입했습니다.\n산책이나 가벼운 등산 좋아합니다. 잘 부탁드려요!', views:7, likes:5, comments:3, at:'방금 전' },
     { post_id:'p3', board_id:'meet', author:'u_walk', title:'이번 토요일 한강 산책 모임', body:'여의나루역에서 만나 한강을 따라 두 시간 정도 걷습니다.\n걷고 나서 근처에서 가볍게 저녁 식사도 함께해요. 초면이어도 전혀 어색하지 않습니다.', meeting_id:'m1', views:31, likes:12, comments:8, at:'10분 전' },
     { post_id:'p4', board_id:'empathy', author:'u_bomnal', title:'이혼 후 혼자 보내는 주말, 어떻게 지내세요?', body:'금요일 밤부터 일요일까지가 제일 길게 느껴집니다.\n처음엔 그 시간이 무서웠는데 요즘은 조금씩 제 취향을 찾아가는 중이에요.\n다들 주말을 어떻게 보내시는지 궁금합니다.', views:94, likes:38, comments:12, at:'18분 전' },
@@ -68,33 +71,80 @@ window.DB = (function () {
     ]
   };
 
+  /* ── 데모 날짜 ────────────────────────────
+     날짜를 문자열로 박아두면 하루만 지나도 '오늘 · 주말 · 완료' 필터가 텅 빕니다.
+     항상 '지금'을 기준으로 만들어 날짜가 지나도 목록이 살아 있게 합니다. */
+  const DOW = ['일','월','화','수','목','금','토'];
+  function dayAt (offset, hm) {
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    const p = String(hm || '19:00').split(':');
+    d.setHours(+p[0], +(p[1] || 0), 0, 0);
+    return d;
+  }
+  /* from일 뒤부터 가장 먼저 오는 요일까지의 날짜 차이 */
+  function nextDow (dow, from) {
+    const d = new Date(); d.setHours(0, 0, 0, 0);
+    let off = (dow - d.getDay() + 7) % 7;
+    while (off < (from || 0)) off += 7;
+    return off;
+  }
+  const dateLabel = d => (d.getMonth() + 1) + '월 ' + d.getDate() + '일 (' + DOW[d.getDay()] + ') ' +
+    ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+  /* 오늘 안에 남아 있는 시간 — '오늘' 모임이 언제 열어봐도 다가오는 일정이 되게 합니다 */
+  function soonHm (mins) {
+    const d = new Date(Date.now() + mins * 60000);
+    if (d.getDate() !== new Date().getDate()) return '23:30';
+    return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+  }
+  const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
   const meetings = [
-    { meeting_id:'m1', host:'u_walk', title:'한강 야간 산책', cat:'산책', date:'8월 8일 (금) 19:30', region:'서울 영등포', place:'여의나루역 2번 출구', capacity:8, joined:6, ratio:'남 3 · 여 3', fee:0, approval:'즉시승인', drink:'없음', age:'30~50대',
+    { meeting_id:'m1', host:'u_walk', title:'한강 야간 산책', cat:'산책', off:0, hm:soonHm(120), region:'서울 영등포', place:'여의나루역 2번 출구', capacity:8, joined:6, ratio:'남 3 · 여 3', fee:0, approval:'즉시승인', drink:'없음', age:'30~50대', room:'r1',
       desc:'여의나루역에서 만나 한강을 따라 약 두 시간 걷습니다. 중간에 편의점에서 잠깐 쉬어가요.',
       plan:'19:30 집합 → 20:00 산책 시작 → 21:00 휴식 → 21:40 마무리',
       items:'편한 운동화, 가벼운 겉옷',
       refund:'모임 24시간 전까지 전액 환불 / 이후 취소는 환불 불가 (무료 모임은 노쇼 기록만 남습니다)' },
-    { meeting_id:'m2', host:'u_travel', title:'40대 와인 모임', cat:'와인', date:'8월 9일 (토) 18:00', region:'서울 마포', place:'합정역 인근 (승인 후 공개)', capacity:10, joined:7, ratio:'남 4 · 여 3', fee:30000, approval:'승인형', drink:'있음', age:'40대',
+    { meeting_id:'m2', host:'u_travel', title:'40대 와인 모임', cat:'와인', off:nextDow(6, 1), hm:'18:00', region:'서울 마포', place:'합정역 인근 (승인 후 공개)', capacity:10, joined:7, ratio:'남 4 · 여 3', fee:30000, approval:'승인형', drink:'있음', age:'40대',
       desc:'와인 세 종류를 함께 맛보며 편하게 이야기 나누는 모임입니다. 와인을 처음 접하는 분도 환영합니다.',
       plan:'18:00 인사 → 18:30 테이스팅 → 20:00 자유 대화 → 21:00 마무리',
       items:'없음 (잔과 안주는 준비되어 있습니다)',
       refund:'모임 3일 전까지 전액 환불 / 2일 전 50% / 당일 환불 불가. 참가비는 와인·안주 비용으로만 사용합니다.' },
-    { meeting_id:'m3', host:'u_bada', title:'주말 브런치 & 수다', cat:'식사', date:'8월 10일 (일) 11:00', region:'서울 마포', place:'합정 브런치 카페', capacity:8, joined:8, ratio:'남 4 · 여 4', fee:25000, approval:'승인형', drink:'없음', age:'30~50대',
+    { meeting_id:'m3', host:'u_bada', title:'주말 브런치 & 수다', cat:'식사', off:nextDow(0, 1), hm:'11:00', region:'서울 마포', place:'합정 브런치 카페', capacity:8, joined:8, ratio:'남 4 · 여 4', fee:25000, approval:'승인형', drink:'없음', age:'30~50대',
       desc:'일요일 늦은 아침, 브런치를 먹으며 편하게 이야기 나눕니다.',
       plan:'11:00 집합 → 13:00 마무리 (원하시면 근처 산책)',
       items:'없음', refund:'모임 2일 전까지 전액 환불 / 이후 환불 불가' },
-    { meeting_id:'m4', host:'u_walk', title:'초보 환영 북한산 등산', cat:'등산', date:'8월 16일 (토) 08:00', region:'서울 은평', place:'북한산성 입구', capacity:12, joined:4, ratio:'남 2 · 여 2', fee:0, approval:'즉시승인', drink:'없음', age:'30~60대',
+    { meeting_id:'m4', host:'u_walk', title:'초보 환영 북한산 등산', cat:'등산', off:nextDow(6, 8), hm:'08:00', region:'서울 은평', place:'북한산성 입구', capacity:12, joined:4, ratio:'남 2 · 여 2', fee:0, approval:'즉시승인', drink:'없음', age:'30~60대',
       desc:'천천히 오르는 초보 코스입니다. 정상까지 가지 않고 중턱에서 돌아옵니다. 하산 후 점심 식사 함께해요.',
       plan:'08:00 집합 → 11:30 하산 → 12:00 점심', items:'등산화, 물 1L, 간식',
       refund:'무료 모임 / 참석이 어려우면 하루 전까지 취소해 주세요' },
-    { meeting_id:'m5', host:'u_travel', title:'평일 저녁 전시 관람', cat:'문화', date:'8월 13일 (수) 19:00', region:'서울 종로', place:'국립현대미술관 서울', capacity:6, joined:3, ratio:'남 1 · 여 2', fee:12000, approval:'즉시승인', drink:'없음', age:'30~50대',
+    { meeting_id:'m5', host:'u_travel', title:'평일 저녁 전시 관람', cat:'문화', off:3, hm:'19:00', region:'서울 종로', place:'국립현대미술관 서울', capacity:6, joined:3, ratio:'남 1 · 여 2', fee:12000, approval:'즉시승인', drink:'없음', age:'30~50대',
       desc:'퇴근 후 함께 전시를 보고 짧게 커피 한 잔 합니다.',
       plan:'19:00 집합 → 20:30 관람 종료 → 21:00 마무리', items:'없음',
-      refund:'관람 전일까지 전액 환불 / 당일 환불 불가' }
+      refund:'관람 전일까지 전액 환불 / 당일 환불 불가' },
+    /* 이미 지난 모임 — 마이페이지의 '완료 · 후기 작성' 이 빈 화면이 되지 않게 둡니다 */
+    { meeting_id:'m6', host:'u_bada', title:'합정 브런치 모임 (지난 모임)', cat:'식사', off:-6, hm:'11:00', region:'서울 마포', place:'합정 브런치 카페', capacity:8, joined:8, ratio:'남 4 · 여 4', fee:25000, approval:'승인형', drink:'없음', age:'30~50대',
+      desc:'지난 주말에 진행된 브런치 모임입니다. 후기를 남겨주세요.',
+      plan:'11:00 집합 → 13:00 마무리', items:'없음',
+      refund:'종료된 모임입니다.' }
   ];
 
+  /* 표시용 날짜 문자열과 정렬용 ts, 공개 동의한 참가자 명단을 한 번에 만듭니다 */
+  const FACE_POOL = ['u_bada','u_travel','u_bomnal','u_latte','u_sky','u_walk'];
+  meetings.forEach(m => {
+    const d = dayAt(m.off, m.hm);
+    m.ts = +d; m.date = dateLabel(d);
+    if (!m.attendees) m.attendees = FACE_POOL.filter(u => u !== m.host).slice(0, Math.min(4, m.joined));
+  });
+
   const chats = [
-    { room_id:'r1', type:'meeting', title:'한강 야간 산책', members:6, linked:'m1', last:'7시 20분까지 2번 출구에서 만나요.', at:'5분 전', unread:2,
+    { room_id:'global', type:'global', title:'전체채팅', members:12480, last:'편하게 인사하고 이야기를 나눠보세요.', at:'지금', unread:0,
+      notice:'모든 정회원이 함께하는 공개채팅입니다. 서로를 존중하고 개인정보 공유에 주의해 주세요.',
+      msgs:[
+        { user:'u_walk', body:'전체채팅에 오신 것을 환영합니다 👋', at:'오후 1:00' },
+        { user:'u_bada', body:'반갑습니다. 편하게 이야기 나눠요!', at:'오후 1:02' }
+      ] },
+    { room_id:'r1', type:'meeting', title:'한강 야간 산책', members:6, linked:'m1', voice:'v1', last:'7시 20분까지 2번 출구에서 만나요.', at:'5분 전', unread:2,
       notice:'토요일 19:30 여의나루역 2번 출구 집합',
       msgs:[
         { user:'u_walk', body:'안녕하세요! 토요일 모임 단체방입니다 👋', at:'오후 2:10' },
@@ -102,7 +152,7 @@ window.DB = (function () {
         { user:'u_bada', body:'네, 확인했습니다.', at:'오후 2:14' },
         { user:'me',     body:'저도 시간 맞춰 가겠습니다!', at:'오후 2:20' }
       ] },
-    { room_id:'r2', type:'group', title:'한강 산책방', members:18, last:'저도 참석합니다', at:'12분 전', unread:0,
+    { room_id:'r2', type:'group', title:'한강 산책방', members:18, voice:'v2', last:'저도 참석합니다', at:'12분 전', unread:0,
       notice:'토요일 3시 여의나루역',
       msgs:[
         { user:'u_walk',   body:'안녕하세요! 👋', at:'오후 1:02' },
@@ -117,16 +167,26 @@ window.DB = (function () {
       ] }
   ];
 
+  /* 발언자·청취자를 실제 명단으로 둡니다. 인원 수는 명단에서 계산합니다. */
   const voiceRooms = [
-    { voice_room_id:'v1', host:'u_walk', title:'밤 산책 수다방', topic:'퇴근 후 아무 이야기', state:'live', access:'공개', speakers:4, listeners:8, started:'21:10' },
-    { voice_room_id:'v2', host:'u_bomnal', title:'혼자 사는 주말 이야기', topic:'주말을 보내는 법', state:'live', access:'공개', speakers:3, listeners:14, started:'20:40' },
-    { voice_room_id:'v3', host:'u_travel', title:'와인 모임 사전 미팅', topic:'토요일 모임 안내', state:'live', access:'그룹 전용', speakers:2, listeners:5, started:'21:30' }
+    { voice_room_id:'v1', host:'u_walk', title:'밤 산책 수다방', topic:'퇴근 후 아무 이야기', state:'live', access:'공개',
+      speakerIds:['u_bada','u_travel','u_bomnal'], listenerIds:['u_latte','u_sky'], extra:6, started:'21:10' },
+    { voice_room_id:'v2', host:'u_bomnal', title:'혼자 사는 주말 이야기', topic:'주말을 보내는 법', state:'live', access:'공개',
+      speakerIds:['u_walk','u_latte'], listenerIds:['u_bada','u_travel','u_sky'], extra:11, started:'20:40' },
+    { voice_room_id:'v3', host:'u_travel', title:'와인 모임 사전 미팅', topic:'토요일 모임 안내', state:'live', access:'그룹 전용',
+      speakerIds:['u_bada'], listenerIds:['u_bomnal','u_walk'], extra:3, started:'21:30' }
   ];
+  const countSeats = v => {
+    v.speakers  = (v.speakerIds || []).length + 1;                       // 진행자 포함
+    v.listeners = (v.listenerIds || []).length + (v.extra || 0);
+    return v;
+  };
+  voiceRooms.forEach(countSeats);
 
   const notifications = [
-    { icon:'💬', title:'봄날님이 회원님의 댓글에 답글을 남겼습니다', at:'8분 전', to:'#/post/p5' },
-    { icon:'🎉', title:'한강 야간 산책 모임 참가가 승인되었습니다', at:'1시간 전', to:'#/meeting/m1' },
-    { icon:'📢', title:'신규회원 가입 안내와 커뮤니티 이용수칙', at:'2일 전', to:'#/post/p1' }
+    { noti_id:'nt1', icon:'💬', title:'봄날님이 회원님의 댓글에 답글을 남겼습니다', at:'8분 전', to:'#/post/p5' },
+    { noti_id:'nt2', icon:'🎉', title:'한강 야간 산책 모임 참가가 승인되었습니다', at:'1시간 전', to:'#/meeting/m1' },
+    { noti_id:'nt3', icon:'📢', title:'신규회원 가입 안내와 커뮤니티 이용수칙', at:'2일 전', to:'#/post/p1' }
   ];
 
   const searchRecent = ['합정 모임','등산','여행','40대 대화방'];
@@ -147,6 +207,15 @@ window.DB = (function () {
   } catch (e) {}
   const saveMine = () => { try { localStorage.setItem(WKEY, JSON.stringify(mine)); } catch (e) {} };
 
+  /* '3시간 전' 같은 목업 문구를 실제 시각으로 되돌립니다.
+     기간 필터(오늘·이번 주·이번 달)가 목업 글에도 동작하도록 ts 를 채워 둡니다. */
+  function minutesAgo (at) {
+    const m = String(at || '').match(/(\d+)\s*(분|시간|일|주)/);
+    if (!m) return 0;
+    const n = +m[1];
+    return m[2] === '분' ? n : m[2] === '시간' ? n * 60 : m[2] === '일' ? n * 1440 : n * 10080;
+  }
+
   /* 작성 시각 → '방금 전 / 12분 전 / 3시간 전 / 2일 전' */
   function ago (ts) {
     const m = Math.floor(Math.max(0, Date.now() - ts) / 60000);
@@ -157,6 +226,13 @@ window.DB = (function () {
   }
   const touch = p => { if (p.ts) p.at = ago(p.ts); return p; };
 
+  posts.concat(anonPosts).forEach(p => { if (!p.ts) p.ts = Date.now() - minutesAgo(p.at) * 60000; });
+
+  /* 댓글마다 고유 id — 공감 표시가 순번에 묶여 밀리지 않도록 합니다 */
+  let cseq = 0;
+  const stampCid = c => { if (!c.cid) c.cid = 'c' + (++cseq); return c; };
+  Object.keys(comments).forEach(pid => comments[pid].forEach(stampCid));
+
   /* 최신순으로 보관하므로 목록 맨 앞에 그대로 붙입니다 */
   posts.unshift.apply(posts, mine.posts.map(touch));
   anonPosts.unshift.apply(anonPosts, mine.anonPosts.map(touch));
@@ -164,7 +240,7 @@ window.DB = (function () {
      목업 글의 댓글 수는 저장되지 않으므로 여기서 다시 더해 줍니다
      (내가 쓴 글은 글 객체 자체가 저장돼 이미 반영되어 있습니다) */
   Object.keys(mine.comments).forEach(pid => {
-    const add = mine.comments[pid].map(touch);
+    const add = mine.comments[pid].map(c => stampCid(touch(c)));
     comments[pid] = (comments[pid] || []).concat(add);
     const p = posts.concat(anonPosts).filter(x => x.post_id === pid)[0];
     if (p && !p.mine) p.comments = (p.comments || 0) + add.length;
@@ -184,6 +260,28 @@ window.DB = (function () {
     const h = d.getHours();
     return (h < 12 ? '오전 ' : '오후 ') + (h % 12 || 12) + ':' + ('0' + d.getMinutes()).slice(-2);
   }
+
+  /* ── 내가 만든 모임 · 보이스룸 · 1:1 대화방 ───
+     서버가 붙기 전까지 브라우저에 보관합니다.
+     docs/BACKEND.md 의 POST /meetings · POST /voice-rooms · POST /rooms 로 교체하면 됩니다.
+     대화방의 메시지는 위 ht.chat.v1 이 이미 들고 있으므로 여기서는 빈 배열로 저장합니다. */
+  const MKEY = 'ht.mine2.v1';
+  let mine2 = { meetings: [], voice: [], dms: [] };
+  try {
+    const o = JSON.parse(localStorage.getItem(MKEY) || 'null');
+    if (o) mine2 = { meetings: o.meetings || [], voice: o.voice || [], dms: o.dms || [] };
+  } catch (e) {}
+  const saveMine2 = () => {
+    try {
+      localStorage.setItem(MKEY, JSON.stringify({
+        meetings: mine2.meetings, voice: mine2.voice,
+        dms: mine2.dms.map(c => Object.assign({}, c, { msgs: [] }))
+      }));
+    } catch (e) {}
+  };
+  meetings.unshift.apply(meetings, mine2.meetings);
+  voiceRooms.unshift.apply(voiceRooms, mine2.voice);
+  chats.unshift.apply(chats, mine2.dms);
 
   chats.forEach(c => {
     const add = myMsgs[c.room_id] || [];
@@ -209,6 +307,7 @@ window.DB = (function () {
            addPost(p){ this.posts.unshift(p); mine.posts.unshift(p); saveMine(); return p; },
            addAnonPost(p){ this.anonPosts.unshift(p); mine.anonPosts.unshift(p); saveMine(); return p; },
            addComment(pid, c){
+             stampCid(c);
              (this.comments[pid] = this.comments[pid] || []).push(c);
              (mine.comments[pid] = mine.comments[pid] || []).push(c);
              const p = this.post(pid);
@@ -259,7 +358,55 @@ window.DB = (function () {
              return m;
            },
            readRoom(roomId){ const c = this.chat(roomId); if (c) c.unread = 0; },
-           resetMine(){ try { localStorage.removeItem(WKEY); localStorage.removeItem(CKEY); } catch (e) {} },
+
+           /* ── 사용자가 만든 것들 ───────────────── */
+           addMeeting(m){ this.meetings.unshift(m); mine2.meetings.unshift(m); saveMine2(); return m; },
+           addVoice(v){ countSeats(v); this.voiceRooms.unshift(v); mine2.voice.unshift(v); saveMine2(); return v; },
+           myMeetingsHosted(){ return mine2.meetings.slice(); },
+           isMine(m){ return !!m && (m.host === 'u_me' || mine2.meetings.some(x => x.meeting_id === m.meeting_id)); },
+           isPast(m){ return !!m && m.ts < Date.now(); },
+           dateLabel(d){ return dateLabel(d instanceof Date ? d : new Date(d)); },
+           sameDay(a, b){ return sameDay(new Date(a), b ? new Date(b) : new Date()); },
+           /* 이미 열려 있는 단체채팅방 id (없으면 null) — 화면은 방을 만들지 않습니다 */
+           roomOf(m){
+             if (!m) return null;
+             if (m.room && this.chat(m.room)) return m.room;
+             return this.chat('mr_' + m.meeting_id) ? 'mr_' + m.meeting_id : null;
+           },
+           /* 모임과 연결된 단체채팅방 — 없으면 만들어 줍니다 */
+           meetingRoom(m){
+             if (!m) return null;
+             const found = m.room && this.chat(m.room);
+             if (found) return found;
+             const id = 'mr_' + m.meeting_id;
+             const made = this.chat(id);
+             if (made) return made;
+             const c = { room_id:id, type:'meeting', title:m.title, members: this.joinedOf(m), linked:m.meeting_id,
+                         last:'모임 단체채팅이 열렸습니다', at:'방금 전', unread:0,
+                         notice: m.date + ' · ' + m.place, msgs:[] };
+             this.chats.unshift(c); mine2.dms.unshift(c); saveMine2();
+             return c;
+           },
+           /* 1:1 대화방 — 이미 있으면 그 방을, 없으면 새로 만들어 돌려줍니다 */
+           dmRoom(userId){
+             const id = 'dm_' + userId;
+             const found = this.chat(id);
+             if (found) return found;
+             const u = this.user(userId);
+             const c = { room_id:id, type:'dm', title:u.nickname, members:2, peer:userId,
+                         last:'대화를 시작해보세요', at:'방금 전', unread:0, msgs:[] };
+             this.chats.unshift(c); mine2.dms.unshift(c); saveMine2();
+             return c;
+           },
+           /* 참가 인원 — 내가 신청했으면 한 명 더해서 보여줍니다 (비회원은 그대로) */
+           joinedOf(m){
+             if (!window.UI || !UI.isMember || !UI.isMember()) return m.joined;
+             return m.joined + (UI.has('myMeets', m.meeting_id) ? 1 : 0);
+           },
+           isFull(m){ return this.joinedOf(m) >= m.capacity; },
+
+           resetMine(){ try { [WKEY, CKEY, MKEY].forEach(k => localStorage.removeItem(k)); } catch (e) {} },
+           hasUser(id){ return id === 'u_me' || !!this.users[id]; },
            user(id){ return id === 'u_me' ? meUser() : (this.users[id] || this.users.u_admin); },
            board(id){ return this.boards.find(b=>b.board_id===id) || {name:'게시판',access:'public'}; },
            post(id){ return this.posts.find(p=>p.post_id===id) || this.anonPosts.find(p=>p.post_id===id); },

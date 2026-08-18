@@ -167,6 +167,8 @@ h1,h2,h3,h4,p{margin:0}
 .avatar.c3{background:linear-gradient(140deg,#8fd0a8,#3f9a72)}
 .avatar.c4{background:linear-gradient(140deg,#c3a7e8,#7e5cb5)}
 .avatar.c5{background:linear-gradient(140deg,#f3c46b,#d69423)}
+/* 등록한 프로필 사진을 아바타로 */
+.avatar.photo{background-size:cover;background-position:center;background-repeat:no-repeat;color:transparent}
 
 .thumb{width:100%;aspect-ratio:16/9;border-radius:var(--r-m);
   background:linear-gradient(135deg,#dbe6ea,#c6d7dc);position:relative;overflow:hidden}

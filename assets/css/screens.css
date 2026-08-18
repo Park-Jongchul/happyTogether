@@ -80,6 +80,7 @@ mark{background:#fff3bf;color:inherit;border-radius:3px;padding:0 1px}
 .uploader b{font-size:22px;color:var(--brand)}
 .photo{width:92px;height:92px;border-radius:30px;background:var(--brand-soft);color:var(--brand);
   font-size:32px;font-weight:800;display:grid;place-items:center;position:relative;margin:0 auto}
+.photo.has{background-size:cover;background-position:center;background-repeat:no-repeat}
 .photo span{position:absolute;right:-2px;bottom:-2px;width:30px;height:30px;border-radius:50%;
   background:var(--brand);color:#fff;font-size:16px;display:grid;place-items:center;border:2.5px solid var(--bg)}
 .visbtn{font-size:11.5px;font-weight:700;color:var(--brand);background:var(--brand-soft);
@@ -200,6 +201,7 @@ mark{background:#fff3bf;color:inherit;border-radius:3px;padding:0 1px}
 .cmt-body{font-size:14px;line-height:1.65;margin-top:3px}
 .cmt-act{display:flex;gap:14px;margin-top:6px}
 .cmt-act button{font-size:11.5px;color:var(--muted);font-weight:600}
+.cmt-act button.on{color:var(--accent);font-weight:800}
 .cmt-bar{position:sticky;bottom:0;display:flex;gap:8px;padding:9px 12px calc(9px + var(--safe-b));
   background:rgba(255,255,255,.97);backdrop-filter:blur(12px);border-top:1px solid var(--line);z-index:40}
 .cmt-bar .inp{height:42px}
@@ -213,7 +215,7 @@ mark{background:#fff3bf;color:inherit;border-radius:3px;padding:0 1px}
 .cnt{font-size:11px;color:var(--muted);font-weight:700}
 .unread{display:inline-block;min-width:19px;height:19px;line-height:19px;padding:0 6px;margin-top:4px;
   border-radius:999px;background:var(--accent);color:#fff;font-size:11px;font-weight:800;text-align:center}
-.pinnotice{display:flex;align-items:center;gap:8px;padding:11px 16px;background:#fff8e6;
+.pinnotice{display:flex;align-items:center;gap:8px;padding:11px 16px;background:#fff8e6;width:100%;text-align:left;
   font-size:12.5px;color:#8a5b12;border-bottom:1px solid #f3e6c8}
 .pinnotice b{background:#f5d489;color:#6d470c;padding:1px 7px;border-radius:6px;font-size:11px;flex:0 0 auto}
 .safebar{padding:9px 16px;background:var(--brand-soft);color:var(--brand-ink);font-size:11.5px;line-height:1.6}
